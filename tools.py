@@ -94,7 +94,7 @@ from tools import ct
     
     """decrypts a given uppercase cipher-text with a polyalphabetic/Vigniere cipher"""
     def poly_decrypt(ciphertext, keyword):
-        inverse_key = "".join(list(map(lambda x: ct.char_shift(x, 13), keyword)))
+        inverse_key = "".join(list(map(lambda x: ct.pos_char(26-ct.char_pos(x)), keyword)))
         return ct.poly_encrypt(ciphertext, inverse_key)
 
     """
