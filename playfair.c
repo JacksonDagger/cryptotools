@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define LEN_CMP 32
 #define KEY_LEN 25
@@ -10,32 +12,157 @@
 #define INT_J 74
 #define KEY_BOX 5
 
+#define TEST_SWAPS 16
+#define MAX_ITERS 6400
+#define RUN_TIME 600
+
 char* real_ct = "ZQGSTOVNXFPFFVVDTKUXDHWTUQFQXUKXIFAYWTIFAYDYNHIBPLXUQGAGCHXYXMPFFVWTVDFRBDFZCLFVXULNZHEYAYYBWTLOPYGWNXDAIADIFHYDBDAYPWDPAWQENXPHHINXXMPFFVVTOHWTUQFQXUKXIFFZCLFVIGWTTVWPXNFZCLFVOYGBWGVQUXGADHBISKZUPHLIUXWEDHNBUDXUHPHTSTEHAFGABAFQXUTFFDKXIFAUIAFQHVDYHRHQAYMHTVCUEYAYYBWTDAIADPFZCLFVOYGSTGVBPYHZQRVSEKBSLPROQFFUIAOWDYHKPGNLXNTVHQSFDQFTGAUDZIXNBTDTXYRPHXXUTSXGIPGPXHHAYDBDAYAHBYIADGXUQFUDHNZPIADTLKVTEHGPWADHWTDCGHSUDZCYWAUDZIXNFZCLFVOYXKPFFVZUPHRTSHCYCDHFGWUTSGTFFZCLFVGWFTVAHBQHGPHTAHIAWTVDFRBDQNLGKNWEFZCLFVVTOHWTUQFQXUKXIFFZCLFVITDEUDDTUOQEDEQUAHIFDPHVUDRLBDEHAYWGCDNXGPCUVDHCFVEHIAAYYBWTGFTVBNXEPXDHTSWTBTFZCLFVOYGBSVBDEHDHSEQEUXAIUDSYTVSHCYCDNFVDVBDQMFPFFVVDHABAQEDUPWPIFTEHFTRMVYPDRIUQOHDUUXAYWIDISYDXBDTVCUHAUDQKSYQZYBCGITDEUDDTUASGHQWEDHTGKVNXOFEHDFMHDHAYSTEHITUXDQXUDYHRIBHLFLDVCNBTAYYBWTXFPFFVVTOHWTHXBGXMPFFVVDHOVFYIPHHWIAUDNCUXVYEFGWXFPFFVAITVWSUDRLDQAIIQBADENFUZQFWSBFVDVTAUIAITUXHZVSUDNCUXVYEFGWGDHZEVHBXUEYAYSTEHITIBABICDGFZCLFVAYHVDYSBDPKTUDXUSHLUDHFZCLFVPHKSLBGBQUAYVHZFPFFVPHHDDHAYWGAYHVMUIFVDGATGHLAYAGBDQUQZPFFVOTKVSHCYCDEFPFFVABGTTQDEIPYSPHVTSTXYXMPFFVUDVDTKUXDHVTNYDAIAIDFZCLFVVTOHAYYBWTXFPFFVPWTFKDXYXGABLYLGOYLGBDAYAHYDBDWTPHMFPFFVUDTVCUEFPFFVOWGHIAIAUDNCUXVYEFGWGFGWDGBDFZCLFVWTTSIOFINRHYPTNCUQPFUZYSPHTBFQELDPQGQHXYXMPFFVTUUXHQSUEDEFPFFVRSAGBDFVXFPFHCGWNWQZPFFVOWDYNRBWDHIAOWIOIGXYNVIAHGQNDYDSDLRUTOUVDYHKPGRPDEIFBYQUYOWADTDLBDSYDEIFAYQGWTTSBTSGNDFZCLFVVTOHWTUQFQXUKXIFAYAGBDQUQZPFFVUDFZHVPHNDEFPDWOHDHVOTXYXGFZCLFVOHPDVWPHNFGXHXVTEHSYKVVDUOYAROHZHLVSDKCDEFPFFVZUFQSKHZFQELDPWHHQUNGSAYWGOFDLPDHQXUFAABVPGAZDABUKWGFMVTZBHPHVPFQZPFFVGWAYUQHVFVQGQHXKPFFVOYGBFQHVCDNXGWAYSIHSOHPDIAFTHVZNIZXNAIFQXYNPDQOYPYFZCLFVVDHOWCGDDQUASTRAVSDKCDHFGWUTSGTFPHVSDQAYWKGWUIYSPHQKPFFVTVDYSUTBQKPFFVDIFTWPNQUXAIMUIFVDGATGHLBHEHUXVSVDHUIFDYDKQENXFZCLFVVTOHWTNXGWVGHXBGXMPFFVITIFTVSGNRRABYLGOYGUPWAYWGODBDIGXYXMPFHCGWNWHZXYYVKBIOAIAYVYGNQZVDOYLGBDAYQGWTVDFRBDFZCLFVUDVDTKUXDHRLTSDCNRXGAYQGWTDXFTRMDHOSFMAIWTUXYFEYAYAHBYIADGUDNLDHTGFPQNGSUDCDEMQZPFFVVDHAUDRASTGSDHVYPDHWUDOVWTYOXDXYYPKIGBFMOYGSUDNCUXVYEFGWDAIAAIAIHOHEIAGPCUWTBTFAHOWGPDAIWTNZSYAGTSWOUKAHIAUDVKNXXNAFYBNEHAUDVSDKCDNFVDTVOWUDKSVBQZQHHAUDXUWPHTSIDQEDVSYOYSSVPHWTUQSGTFFZCLFVVDHUDZWADERLIFXNHODVENDMGBDENYGFFDTSWTUQFQXUKXIFAYAHPDVWPHHAIAZFPFFVVTOHAYYBWTGAIDUXEDKWGBDEEYAYWTDENQUXPBQHAUIAIDFZCLFVPWDPSTKYTOEFPFFVXULNZHHAUDQKSYQZYBFHIAUDFQHVUNGSWTUQSGTFAYAHPYHQCNFQLYLGWTTSOSKBHQOYLGBDAYWGTUVYNVIAWPEHGWFZCLFVOYGBFQHVXHQGWGXUEYAYWGXYGVNXXGBDTVQZXUQWPFFVUDFZHVPHNDEFPFFVTVUDFTRMDHVYPDYHIAWTUXHZABVNDYEDWTPHHGHVUDFILXHOVFFOYSOHYOAYWIDTWGVSDTSTKBDHAYYBWTGAUDKNEMUWPHOFLKUXITPFFADXBDDPFZCLFVVDTKUXDHWTUQFQXUKXIFGWVTGPHTQHNFTSW";
 
 int main(void) {
+    time_t t;
+    srand((unsigned) time(&t));
+    int len = strlen(real_ct);
+    char key[26] = {0};
+    char top_keys[8][26] = {0};
+    
+    double test_mae = test_rand_keys(real_ct, len, key);
 
+    printf("Best key is %s with mae of %f", key, test_mae);
 }
 
-double mae(char key[], char* ciphertext){
+double test_rand_keys(char *ciphertext, int len, char *key){
+    clock_t begin = clock();
+    char test_key[26] = {0};
+    double test_mae = test_rand_key(ciphertext, len, test_key);
+    double best_mae = test_mae;
 
+    memcpy(key, test_key, KEY_LEN+1);
+    clock_t now = clock();
+
+    while ((double)(now - begin) / CLOCKS_PER_SEC < RUN_TIME){
+        test_mae = test_rand_key(ciphertext, len, test_key);
+        if (test_mae < best_mae){
+            best_mae = test_mae;
+            memcpy(key, test_key, KEY_LEN+1);
+        }
+    }
+    return best_mae;
+}
+
+double test_rand_key(char *ciphertext, int len, char *key){
+    char test_key[KEY_LEN+1] = {0};
+    char best_key[KEY_LEN+1];
+    int iters;
+    int fails = 0;
+
+    random_key(test_key);
+    memcpy(best_key, test_key, KEY_LEN+1);
+
+    double best_mae = mae(best_key, ciphertext, len);
+    double test_mae = best_mae;
+
+    for(iters=0; iters<MAX_ITERS; iters++){
+        memcpy(test_key, best_key, KEY_LEN+1);
+        random_swap(test_key);
+        test_mae = mae(test_key, ciphertext, len);
+        fails++;
+        if (test_mae < best_mae){
+            best_mae = test_mae;
+            memcpy(best_key, test_key, KEY_LEN+1);
+            fails = 0;
+        }
+        else if (fails >= TEST_SWAPS){
+            break;
+        }
+    }
+    memcpy(key, best_key, KEY_LEN+1);
+    return best_mae;
+}
+
+void random_swap(char *key){
+    int i1 = rand()%KEY_LEN;
+    int i2 = rand()%KEY_LEN;
+    while(i2 == i1){
+        i2 = rand()%KEY_LEN;
+    }
+    char temp = key[i2];
+    key[i2] = key[i1];
+    key[i1] = temp;
+}
+void random_key(char *key){
+    char alphabet[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+    'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
+    'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+    int i = 0;
+    for(int len = KEY_LEN; len > 0; len--){
+        i = rand()%len;
+        key[KEY_LEN-len]=alphabet[i];
+        alphabet[i] = alphabet[len-1];
+    }
+    key[KEY_LEN] = '\0';
+}
+
+double mae(char key[], char* ciphertext, int len){
+    char* plaintext = playfair_decode(key, ciphertext, len);
+    double mae = 0;
+    mae += 2*digram_mae(plaintext, len);
+    mae += inline_digram_mae(plaintext, len);
+    mae += trigram_mae(plaintext, len);
+
+    free(plaintext);
+    return mae;
 }
 
 double digram_mae(char* plaintext, int len){
-    unsigned int digrams[25][25] = {0};
+    unsigned int new_digrams[25][25] = {0};
     double mae = 0.0;
     for(int i = 0; i < len-1; i++) {
-        digrams[char_pos(plaintext[i])][char_pos(plaintext[i+1])] += 1;
+        new_digrams[char_pos(plaintext[i])][char_pos(plaintext[i+1])] += 1;
+    }
+    for(int i = 0; i < LEN_CMP; i ++){
+        double expected_freq = digrams[i].freq;
+        int index0 = char_pos(digrams[i].gram[0]);
+        int index1 = char_pos(digrams[i].gram[1]);
+        double freq = ((double) new_digrams[index0][index1])/((double) len-1);
+        mae += fabs(freq-expected_freq);
+    }
+    return mae/LEN_CMP;
+}
+
+double inline_digram_mae(char* plaintext, int len){
+    unsigned int new_digrams[25][25] = {0};
+    double mae = 0.0;
+    for(int i = 0; i < len-1; i+=2) {
+        new_digrams[char_pos(plaintext[i])][char_pos(plaintext[i+1])] += 1;
     }
     for(int i = 0; i < LEN_CMP; i ++){
         double expected_freq = inline_digrams[i].freq;
         int index0 = char_pos(inline_digrams[i].gram[0]);
         int index1 = char_pos(inline_digrams[i].gram[1]);
-        double freq = ((double) digrams[index0][index1])/((double) len-1);
+        double freq = ((double) new_digrams[index0][index1])/((double) len/2);
         mae += fabs(freq-expected_freq);
     }
+    return mae/LEN_CMP;
 }
 
-char* playfair_decode(char key[], char* ciphertext){
+double trigram_mae(char* plaintext, int len){
+    unsigned int new_trigrams[25][25][25] = {0};
+    double mae = 0.0;
+    for(int i = 0; i < len-2; i++) {
+        new_trigrams[char_pos(plaintext[i])][char_pos(plaintext[i+1])][char_pos(plaintext[i+2])] += 1;
+    }
+    for(int i = 0; i < LEN_CMP; i ++){
+        double expected_freq = trigrams[i].freq;
+        int index0 = char_pos(trigrams[i].gram[0]);
+        int index1 = char_pos(trigrams[i].gram[1]);
+        int index2 = char_pos(trigrams[i].gram[2]);
+        double freq = ((double) new_trigrams[index0][index1][index2])/((double) len-2);
+        mae += fabs(freq-expected_freq);
+    }
+    return mae/LEN_CMP;
+}
+
+char* playfair_decode(char key[], char* ciphertext, int len){
     int key_mappings[25] = {0}; // map characters in the key to their index
     for(int i = 0; i < 25; i++){
         key_mappings[char_pos(key[i])]=i;
@@ -45,15 +172,14 @@ char* playfair_decode(char key[], char* ciphertext){
         zeroes += key_mappings[i] == 0;
     }
     if (zeroes != 1) {
-        print("Reverse key mapping messed up");
+        printf("Reverse key mapping messed up");
     }
 
-    int len = strlen(ciphertext);
-    char *plaintext = (char *) malloc(len*sizeof(char)+1);
+    char *plaintext = (char *) malloc((len+1)*sizeof(char));
     memset((void *) plaintext, 0, len+1);
 
     for(int i = 0; i < len - 1; i += 2){
-        digram_decrypt(ciphertext[i], plaintext[i], key_mappings, key);
+        digram_decrypt(&(ciphertext[i]), &(plaintext[i]), key_mappings, key);
     }
     return plaintext;
 }
