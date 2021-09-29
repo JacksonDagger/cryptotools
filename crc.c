@@ -13,7 +13,7 @@
  *  - ReflectOut    = True
  *  - Algorithm     = table-driven
  */
-#include "crc.h"     /* include the header file generated with pycrc */
+#include "crc.h" // made my own crc.h for simplicity
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -57,6 +57,9 @@ static const uint32_t crc_table[256] = {
     0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
+/**
+ * Array crc_table indices indexed by left-most-byte
+ */
 static const uint32_t crc_lmb_rev_lut[256] = {
     0, 65, 195, 130, 134, 199, 69, 4,
     77, 12, 142, 207, 203, 138, 8, 73,
@@ -103,4 +106,9 @@ uint32_t crc32_update(uint32_t crc, const void *data, size_t data_len)
         d++;
     }
     return crc;
+}
+
+uint32_t crc32_update(uint32_t crc, const void *data, size_t data_len)
+{
+    
 }
