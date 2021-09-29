@@ -3,3 +3,7 @@ __pycache__
 *.json
 *.out
 playfair
+.DS_Store
+build
+pycrc
+pycrc.py
