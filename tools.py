@@ -250,13 +250,13 @@ from tools import ct
         if len(text)%2:
             text.append('X')
         return "".join(text)
-    def df_sort_print(df):
+    def df_sort_print(df, interval=8, printlen=256):
         df=df.sort_values(by=["gram"])
         i = 0
         pslist=[]
-        while i < 256:
+        while i < printlen:
             pslist.append("{\""+df["gram"][i]+"\", "+str(df["frequency"][i])+"}, ")
-            if i%8 == 7:
+            if i%interval == interval-1:
                 print(" ".join(pslist))
                 pslist=[]
             i+=1
@@ -289,6 +289,10 @@ from tools import ct
         ct.df_sort_print(g2_freqs)
         print("\n")
         ct.df_sort_print(g3_freqs)
+        print("\n")
+        ct.df_sort_print(g4_freqs, interval=4)
+        print("\n")
+        ct.df_sort_print(g5_freqs, interval=4)
 
     def reverse_lut(lu_table):
         reverse_lu_table = [0] * 256
