@@ -16,13 +16,87 @@
 #include "crc.h" // made my own crc.h for simplicity
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
+#include <string.h>
+#include <stdio.h>
 
+#define DEFAULT_CRC 0xFFFFFFFF
+#define FOUND_TABLE_LEN 0x00FFFFFF
+#define FOUND_TABLE_WIDTH 8
+#define CHAR_ARR_LEN FOUND_TABLE_WIDTH - 1
+#define INDEX_MASK 0xFFFFFF00
+#define INDEX_SHIFT 8
+
+#define FIRST_CHAR 32 // range of printable chars
+#define LAST_CHAR 126
+
+#define INDEX(CRC_VAL) ((CRC_VAL & INDEX_MASK) >> INDEX_SHIFT)
+#define REMAINDER(CRC_VAL) ((uint8_t) (CRC_VAL & (~INDEX_MASK)))
+
+static unsigned char values[FOUND_TABLE_LEN][FOUND_TABLE_WIDTH];
+
+int main(void){
+    time_t t;
+    srand((unsigned) time(&t));
+    crc_collision();
+}
+
+void crc_collision(void){
+    clock_t begin = clock();
+    memset(values, 0, FOUND_TABLE_LEN*FOUND_TABLE_WIDTH);
+    uint32_t crc32;
+    unsigned char rand_seq[CHAR_ARR_LEN + 1] = {0};
+    unsigned char col_seq[CHAR_ARR_LEN + 1] = {0};
+
+    uint32_t index;
+    uint8_t rmb;
+
+    uint32_t tries = 0;
+    uint32_t part_collisions = 0;
+    uint32_t same_vals = 0;
+    clock_t loop_begin = clock();
+    while (1) {
+        tries ++;
+        for (int i = 0; i < CHAR_ARR_LEN; i++){
+            rand_seq[i] = rand_char();
+        }
+        crc32 = crc32_update(DEFAULT_CRC, (void *) rand_seq, CHAR_ARR_LEN);
+        index = INDEX(crc32);
+        rmb = REMAINDER(crc32);
+        if (!values[index][0]){
+            values[index][0] = (unsigned char) rmb;
+            memcpy((void *)&values[index][1], (void *)rand_seq, CHAR_ARR_LEN);
+        }
+        else if ((uint8_t) values[index][0] == rmb){
+            if (memcmp((void *)rand_seq, (void *)&values[index][1], CHAR_ARR_LEN)){
+                memcpy((void *)col_seq, (void *)&values[index][1], CHAR_ARR_LEN);
+                break;
+            }
+            else {
+                same_vals ++;
+            }
+        }
+        else {
+            part_collisions ++;
+        }
+    }
+    clock_t end = clock();
+    double total_runtime = (end - begin) / (double) CLOCKS_PER_SEC;
+    double loop_runtime = (end - loop_begin) / (double) CLOCKS_PER_SEC;
+    printf("The two colliding strings are \"%s\" and \"%s\"\n", rand_seq, col_seq);
+    printf("The program ran in %lf ms with the main loop taking %lf ms\n", total_runtime, loop_runtime);
+    printf("%u random values were generated, of which %u were discarded for partial collisions and %u were values already generated.\n", tries, part_collisions, same_vals);
+}
+
+inline unsigned char rand_char(void){
+    return rand()%(LAST_CHAR - FIRST_CHAR + 1) + FIRST_CHAR;
+}
 
 
 /**
- * Static table used for the table_driven implementation.
+ * table used for the table_driven implementation.
  */
-static const uint32_t crc_table[256] = {
+const uint32_t crc_table[256] = {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
     0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91,
     0x1db71064, 0x6ab020f2, 0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7,
@@ -60,7 +134,7 @@ static const uint32_t crc_table[256] = {
 /**
  * Array crc_table indices indexed by left-most-byte
  */
-static const uint32_t crc_lmb_rev_lut[256] = {
+const uint8_t crc_lmb_rev_lut[256] = {
     0, 65, 195, 130, 134, 199, 69, 4,
     77, 12, 142, 207, 203, 138, 8, 73,
     154, 219, 89, 24, 28, 93, 223, 158,
@@ -108,7 +182,3 @@ uint32_t crc32_update(uint32_t crc, const void *data, size_t data_len)
     return crc;
 }
 
-uint32_t crc32_update(uint32_t crc, const void *data, size_t data_len)
-{
-    
-}
