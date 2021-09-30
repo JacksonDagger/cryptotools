@@ -34,6 +34,7 @@ double digram_mae(char* plaintext, int len);
 double inline_digram_mae(char* plaintext, int len);
 double trigram_mae(char* plaintext, int len);
 double quadrigram_mae(char* plaintext, int len);
+double quintigram_mae(char* plaintext, int len);
 char* playfair_decode(char key[], const char *ciphertext, int len);
 int digram_decrypt(const char * in, char * out, const int key_mappings[25], const char key[]);
 int char_pos(char in);
