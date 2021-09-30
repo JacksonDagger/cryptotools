@@ -110,8 +110,8 @@ from tools import ct
         if show:
             plt.show()
     
-    """uses pyplot to show multiple frequency charts for a given cipher-text anf guessed poly key length"""
-    def poly_freq_chart(ciphertext, keylen):
+    """uses pyplot to show multiple frequency charts for a given cipher-text and guessed vignere key length"""
+    def vignere_freq_chart(ciphertext, keylen):
         plt.clf()
         for i in range(keylen):
             partstring = "".join([ciphertext[j] for j in range(i, len(ciphertext), keylen)])
