@@ -30,17 +30,89 @@
 #define FIRST_CHAR 32 // range of printable chars
 #define LAST_CHAR 126
 
+#define BACKTRACK_LEN 4
+#define LMB_MASK 0xFF000000
+#define LMB_SHIFT 24
+
 #define INDEX(CRC_VAL) ((CRC_VAL & INDEX_MASK) >> INDEX_SHIFT)
 #define REMAINDER(CRC_VAL) ((uint8_t) (CRC_VAL & (~INDEX_MASK)))
+
+#define LMB(CRC_VAL) ((CRC_VAL & LMB_MASK) >> LMB_SHIFT)
+
+#define STUD_NO_MD5 "D47BB709FB24B803882325485E1253D8"
+#define CRC_STUD_NO_MD5 0x9228124e // used pycrc.py
 
 static unsigned char values[FOUND_TABLE_LEN][FOUND_TABLE_WIDTH];
 
 int main(void){
     time_t t;
     srand((unsigned) time(&t));
-    crc_collision();
+    //crc_4_char(DEFAULT_CRC, CRC_STUD_NO_MD5);
+    //crc_collision();
+    spec_crc_collision(CRC_STUD_NO_MD5);
 }
 
+/* generates and prints a 4 byte sequence that can
+* be appended to any object with crc32=init_crc32 to
+* make and object with crc32=end_crc32
+*/
+void crc_4_char(uint32_t init_crc32, uint32_t end_crc32){
+    clock_t begin = clock();
+    uint8_t indices[BACKTRACK_LEN];
+    unsigned char chars[BACKTRACK_LEN+1] = {0};
+    index_order(end_crc32, indices);
+    char_seq(init_crc32, indices, chars);
+    clock_t end = clock();
+    double total_runtime = 1000.0*(end - begin) / (double) CLOCKS_PER_SEC;
+    printf("Hex values of chars. \n");
+    for (int i = 0; i < BACKTRACK_LEN; i++){
+        printf("%x\n", chars[i] & 0xff);
+    }
+    printf("%s", chars);
+    printf("Took %lf milliseconds to calculate\n", total_runtime);
+}
+
+void char_seq(uint32_t crc32, uint8_t indices[BACKTRACK_LEN], unsigned char chars[BACKTRACK_LEN]){
+    for(int i = 0; i < BACKTRACK_LEN; i++) {
+        chars[i] = (crc32 & 0xff) ^ indices[i];
+        crc32 = crc_table[indices[i]] ^ (crc32 >> 8);
+    }
+}
+
+void index_order(uint32_t crc32, uint8_t indices[BACKTRACK_LEN]){
+    uint8_t tbl_index;
+    uint8_t lmb;
+
+    for(int i = BACKTRACK_LEN - 1; i >= 0; i--) {
+        lmb = LMB(crc32);
+        tbl_index = crc_lmb_rev_lut[lmb];
+        crc32 = (crc32^crc_table[tbl_index]) << 8;
+        indices[i] = tbl_index;
+    }
+}
+
+void spec_crc_collision(uint32_t crc32){
+    clock_t begin = clock();
+    unsigned char rand_seq[9] = {0};
+    unsigned long tries = 0;
+
+    uint32_t test_crc32;
+
+    while (1) {
+        tries ++;
+        for (int i = 0; i < 8; i++){
+            rand_seq[i] = rand_char();
+        }
+        test_crc32 = crc32_update(DEFAULT_CRC, (void *) rand_seq, 8);
+        if (test_crc32 == crc32){
+            break;
+        }
+    }
+    clock_t end = clock();
+    double total_runtime = 1000.0*(end - begin) / (double) CLOCKS_PER_SEC;
+    printf("The colliding string is \"%s\"\n", rand_seq);
+    printf("The program ran in %lf ms and looked at %ld strings\n", total_runtime, tries);
+}
 void crc_collision(void){
     clock_t begin = clock();
     memset(values, 0, FOUND_TABLE_LEN*FOUND_TABLE_WIDTH);
@@ -81,8 +153,8 @@ void crc_collision(void){
         }
     }
     clock_t end = clock();
-    double total_runtime = (end - begin) / (double) CLOCKS_PER_SEC;
-    double loop_runtime = (end - loop_begin) / (double) CLOCKS_PER_SEC;
+    double total_runtime = 1000.0*(end - begin) / (double) CLOCKS_PER_SEC;
+    double loop_runtime = 1000.0*(end - loop_begin) / (double) CLOCKS_PER_SEC;
     printf("The two colliding strings are \"%s\" and \"%s\"\n", rand_seq, col_seq);
     printf("The program ran in %lf ms with the main loop taking %lf ms\n", total_runtime, loop_runtime);
     printf("%u random values were generated, of which %u were discarded for partial collisions and %u were values already generated.\n", tries, part_collisions, same_vals);
@@ -92,6 +164,19 @@ inline unsigned char rand_char(void){
     return rand()%(LAST_CHAR - FIRST_CHAR + 1) + FIRST_CHAR;
 }
 
+/* adapted from pycrc version */
+uint32_t crc32_update(uint32_t crc, const void *data, size_t data_len)
+{
+    const unsigned char *d = (const unsigned char *)data;
+    unsigned int tbl_idx;
+
+    while (data_len--) {
+        tbl_idx = (crc ^ *d) & 0xff;
+        crc = crc_table[tbl_idx] ^ (crc >> 8);
+        d++;
+    }
+    return crc;
+}
 
 /**
  * table used for the table_driven implementation.
@@ -168,17 +253,4 @@ const uint8_t crc_lmb_rev_lut[256] = {
     144, 209, 83, 18, 22, 87, 213, 148,
     221, 156, 30, 95, 91, 26, 152, 217
 };
-
-uint32_t crc32_update(uint32_t crc, const void *data, size_t data_len)
-{
-    const unsigned char *d = (const unsigned char *)data;
-    unsigned int tbl_idx;
-
-    while (data_len--) {
-        tbl_idx = (crc ^ *d) & 0xff;
-        crc = crc_table[tbl_idx] ^ (crc >> 8);
-        d++;
-    }
-    return crc;
-}
 
