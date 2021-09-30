@@ -14,7 +14,7 @@
 #define KEY_BOX 5
 #define NUM_THREADS 8
 
-#define TEST_SWAPS 16
+#define TEST_SWAPS 32
 #define MAX_ITERS 6400
 #define RUN_TIME 12000
 
@@ -27,7 +27,7 @@ int main(void) {
 
     pthread_t threads[NUM_THREADS];
     
-    static char keys[NUM_THREADS][26] = {0};
+    static char keys[NUM_THREADS][KEY_LEN+1] = {0};
     static double maes[NUM_THREADS] = {0};
     static struct params parr[NUM_THREADS] = {0};
 
@@ -54,8 +54,8 @@ int main(void) {
 
     printf("Best key is %s with mae of %f\n", (char*)&keys[best_i], best_mae);
     printf("Plaintext: %s\n", playfair_decode((char*)&keys[best_i], real_ct, len));
-    
 }
+
 
 void *threaded_rand(void *_args){
     struct params *args = (struct params *) _args;
@@ -64,7 +64,7 @@ void *threaded_rand(void *_args){
 
 double test_rand_keys(const char *ciphertext, int len, char *key){
     clock_t begin = clock();
-    char test_key[26] = {0};
+    char test_key[KEY_LEN+1] = {0};
     double test_mae = test_rand_key(ciphertext, len, test_key);
     double best_mae = test_mae;
 
@@ -75,7 +75,7 @@ double test_rand_keys(const char *ciphertext, int len, char *key){
         test_mae = test_rand_key(ciphertext, len, test_key);
         if (test_mae < best_mae){
             best_mae = test_mae;
-            memcpy(key, test_key, KEY_LEN+1);
+            memcpy(key, test_key, KEY_LEN);
         }
         now = clock();
     }
@@ -84,31 +84,29 @@ double test_rand_keys(const char *ciphertext, int len, char *key){
 
 double test_rand_key(const char *ciphertext, int len, char *key){
     char test_key[KEY_LEN+1] = {0};
-    char best_key[KEY_LEN+1];
     int iters;
     int fails = 0;
 
     random_key(test_key);
-    memcpy(best_key, test_key, KEY_LEN+1);
+    memcpy(key, test_key, KEY_LEN);
 
-    double best_mae = mae(best_key, ciphertext, len);
+    double best_mae = mae(key, ciphertext, len);
     double test_mae = best_mae;
 
     for(iters=0; iters<MAX_ITERS; iters++){
-        memcpy(test_key, best_key, KEY_LEN+1);
+        memcpy(test_key, key, KEY_LEN);
         random_swap(test_key);
         test_mae = mae(test_key, ciphertext, len);
         fails++;
         if (test_mae < best_mae){
             best_mae = test_mae;
-            memcpy(best_key, test_key, KEY_LEN+1);
+            memcpy(key, test_key, KEY_LEN);
             fails = 0;
         }
         else if (fails >= TEST_SWAPS){
             break;
         }
     }
-    memcpy(key, best_key, KEY_LEN+1);
     return best_mae;
 }
 
@@ -196,8 +194,8 @@ double trigram_mae(char* plaintext, int len){
 }
 
 char* playfair_decode(char key[], const char* ciphertext, int len){
-    int key_mappings[25] = {0}; // map characters in the key to their index
-    for(int i = 0; i < 25; i++){
+    int key_mappings[KEY_LEN] = {0}; // map characters in the key to their index
+    for(int i = 0; i < KEY_LEN; i++){
         key_mappings[char_pos(key[i])]=i;
     }
     int zeroes = 0;
@@ -217,34 +215,34 @@ char* playfair_decode(char key[], const char* ciphertext, int len){
     return plaintext;
 }
 
-inline int digram_decrypt(const char * in, char * out, const int key_mappings[25], const char key[]){
+inline int digram_decrypt(const char *in, char *out, const int key_mappings[25], const char key[]){
     int first_i = key_mappings[char_pos(in[0])];
     int second_i = key_mappings[char_pos(in[1])];
 
-    if (first_i % KEY_BOX == second_i % KEY_BOX){
+    if ((first_i % KEY_BOX) == (second_i % KEY_BOX)){
         out[0] = key[(KEY_LEN + first_i - KEY_BOX) % KEY_LEN];
         out[1] = key[(KEY_LEN + second_i - KEY_BOX) % KEY_LEN];
     }
-    else if (first_i / KEY_BOX == second_i / KEY_BOX){
-        out[0] = key[first_i / KEY_BOX + (first_i + KEY_BOX - 1) % KEY_BOX];
-        out[1] = key[second_i / KEY_BOX + (second_i + KEY_BOX - 1) % KEY_BOX];
+    else if ((first_i / KEY_BOX) == (second_i / KEY_BOX)){
+        out[0] = key[first_i - first_i % KEY_BOX + (first_i + KEY_BOX - 1) % KEY_BOX];
+        out[1] = key[second_i - second_i % KEY_BOX + (second_i + KEY_BOX - 1) % KEY_BOX];
     }
     else {
-        out[0] = key[first_i / KEY_BOX + second_i % KEY_BOX];
-        out[1] = key[second_i / KEY_BOX + first_i % KEY_BOX];
+        out[0] = key[first_i - first_i % KEY_BOX + second_i % KEY_BOX];
+        out[1] = key[second_i - second_i % KEY_BOX + first_i % KEY_BOX];
     }
 }
 
 inline int char_pos(char in){
     int pos = (int) in;
-    pos -= pos > INT_J;
+    pos -= (pos > INT_J);
     pos -= INT_A;
     return pos;
 }
 
 inline int pos_char(int pos){
     pos += INT_A;
-    pos += pos >= INT_J;
+    pos += (pos >= INT_J);
     return (char) pos;
 }
 
